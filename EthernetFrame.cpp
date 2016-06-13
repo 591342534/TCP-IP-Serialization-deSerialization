@@ -53,11 +53,12 @@ void EthernetFrame::genFrame()
 {
     memcpy(frame,&header,HeaderLength);
     memcpy(frame+HeaderLength,packet,PacketLength);
+    FrameLength=HeaderLength+PacketLength;
 }
 
 void EthernetFrame::writeFrame()
 {
-    std::fstream frameFile("./eth_frame.txt",std::ios::out|std::ios::app);
+    std::fstream frameFile("./eth_frame.txt",std::ios::out);
     unsigned char *output=(unsigned char *)frame;
     for(int i=0; i<(FrameLength); i++)
     {

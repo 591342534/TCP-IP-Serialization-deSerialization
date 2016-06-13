@@ -16,6 +16,7 @@ PackIpPacket::PackIpPacket()
 
     OptionLength=0;
     SegmentLength=0;
+    PacketLength=0;
 
     tcp=new PackTcpSegment();
     udp=new PackUdpSegment();
@@ -69,6 +70,7 @@ int PackIpPacket::setServiceType(int type)
 int PackIpPacket::genTotalLength()
 {
     header.TotalLength=HeaderLength+OptionLength+SegmentLength;
+    PacketLength=header.TotalLength;
     return 1;
 }
 
@@ -275,13 +277,11 @@ int PackIpPacket::genHeaderChecksum()
 
 int PackIpPacket::writePacket()
 {
-    std::fstream packetFile("./ip_packet.txt",std::ios::out|std::ios::app);
-    unsigned short *output=(unsigned short *)packet;
-    for(int i=0; i<(header.TotalLength/2); i++)
+    std::fstream packetFile("./ip_packet.txt",std::ios::out);
+    unsigned char *output=(unsigned char *)packet;
+    for(int i=0; i<PacketLength; i++)
     {
-        packetFile<<std::hex<<(*(output+i))<<"  ";
-        if((i+1)%8==0)
-            packetFile<<std::endl;
+        packetFile<<(*(output+i));
     }
     packetFile.close();
     return 1;
@@ -365,13 +365,13 @@ unsigned char * PackIpPacket::getPacket()
 
 int PackIpPacket::getPacketLength()
 {
-    return header.TotalLength;
+    return PacketLength;
 }
 
 int PackIpPacket::getProtocolType()
 {
-    int type=header.TTL_Protocol;
+    unsigned short type=header.TTL_Protocol;
     type<<=8;
     type>>=8;
-    return type;
+    return (int)type;
 }

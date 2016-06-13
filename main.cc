@@ -5,6 +5,7 @@
 char src[20]="223.252.199.6";
 char dst[20]="192.168.199.222";
 unsigned char *raw_data;
+unsigned char *frame_data;
 int data_length;
 
 PackTcpSegment *tcp=new PackTcpSegment();
@@ -20,26 +21,32 @@ int main()
     void genIpPacketFromUdp();
 
     raw_data=(unsigned char *)malloc(1518);
+    frame_data=(unsigned char *)malloc(1518);
     std::ifstream fin;
     fin.open("raw_data.txt",std::ios::in);
-    fin>>raw_data;
     fin.seekg(0,std::ios::end);
     data_length=fin.tellg();
+    fin.seekg(0,std::ios::beg);
+    fin.read((char*)raw_data,data_length);
+    //data_length=0;
     fin.close();
 
     //生成源文件
-    genTcpSegment();
-    genIpPacketFromTcp();
+    genUdpSegment();
+    genIpPacketFromUdp();
+    ip->writePacket();
     eth->setPacket(ip->getPacket(),ip->getPacketLength());
+    eth->genFrame();
     eth->writeFrame();
-
 
     //解析源文件
     fin.open("eth_frame.txt",std::ios::in);
-    fin>>raw_data;
     fin.seekg(0,std::ios::end);
     data_length=fin.tellg();
-    eth->parseFrame(raw_data,data_length);
+    fin.seekg(0,std::ios::beg);
+    fin.read((char*)frame_data,data_length);
+    fin.close();
+    eth->parseFrame(frame_data,data_length);
     ip->parsePacket(eth->getPacket(),eth->getPacketLength());
     if(ip->getProtocolType()==6){
         tcp->parseSegment(ip->getSegment(),ip->getSegmentLength());
@@ -57,7 +64,7 @@ void genUdpSegment()
     udp->setDestinationPort(20141);
     udp->setData(raw_data,data_length);
     udp->genSegment();
-    udp->writeSegment();
+    //udp->writeSegment();
 }
 
 void genIpPacketFromUdp()
@@ -78,14 +85,14 @@ void genTcpSegment()
 {
     tcp->setIpSourceAddr(src);
     tcp->setIpDestinationAddr(dst);
-    tcp->setSourcePort(6003);
-    tcp->setDestinationPort(58634);
-    tcp->setSequnceNumber(0x78DBB4E9);
-    tcp->setAckNumber(0xBEA97F1A);
-    tcp->setPSH(1);
+    tcp->setSourcePort(52512);
+    tcp->setDestinationPort(80);
+    tcp->setSequnceNumber(0x59269446);
+    tcp->setAckNumber(0xC4E9A28D);
+    //tcp->setPSH(1);
     tcp->setACK(1);
-    tcp->setWndSize(26);
-    tcp->setTimeStamp(0xB5AE06C8,0x0035B919);
+    tcp->setWndSize(0);
+    //tcp->setTimeStamp(0xB5AE06C8,0x0035B919);
 
     tcp->setData(raw_data,data_length);
 

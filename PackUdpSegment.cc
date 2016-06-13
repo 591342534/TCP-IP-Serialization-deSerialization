@@ -124,7 +124,7 @@ int PackUdpSegment::genCheckSum()
 
 int PackUdpSegment::writeSegment()
 {
-    std::fstream segmentFile("./udp_segment.txt",std::ios::out|std::ios::app);
+    std::fstream segmentFile("./udp_segment.txt",std::ios::out);
     unsigned short *output=(unsigned short *)segment;
     for(int i=0; i<header.SegmentSize/2; i++)
     {
@@ -168,6 +168,16 @@ void PackUdpSegment::parseSegment(unsigned char *d,int Len)
     header_ntoh();
     DataLength=Len-UdpHeaderLength;
     memcpy(data,d,DataLength);
+
+
+    std::fstream dataFile("./app_data_udp.txt",std::ios::out);
+    unsigned char *output=(unsigned char *)data;
+    for(int i=0; i<DataLength; i++)
+    {
+        dataFile<<(*(output+i));
+
+    }
+    dataFile.close();
 }
 
 unsigned char * PackUdpSegment::getAppData()

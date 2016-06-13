@@ -16,7 +16,6 @@ struct Ipheader
     unsigned int IpDestinationAddr;
 };
 
-
 class PackIpPacket
 {
 public:
@@ -40,15 +39,18 @@ public:
     int setTimetStamp(int len,int p,int flag,char **addr,int num);
 
     int genPacket();
-    int setSegment(unsigned char *d,int len);
+
 
     int writePacket();
     void header_hton();
     void header_ntoh();
 
-    void parsePacket(unsigned char * d,int Len);
-    unsigned char *getSegment();
-    unsigned char *getPacket();
+    int setSegment(unsigned char *d,int len);//
+    void parsePacket(unsigned char * d,int Len);//解析IP分组
+
+    unsigned char *getSegment();//获取解析后的数据字段 即TCP/UDP报文
+    unsigned char *getPacket();//获取生成的IP分组
+
     int getSegmentLength();
     int getPacketLength();
     int getProtocolType();
@@ -67,6 +69,7 @@ private:
     unsigned char *packet;
     int OptionLength;
     int SegmentLength;
+    int PacketLength;
 
 
 };

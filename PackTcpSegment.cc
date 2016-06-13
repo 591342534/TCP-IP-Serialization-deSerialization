@@ -290,6 +290,7 @@ int PackTcpSegment::genSegment()
         memcpy(segment+TcpHeaderLength,options,OptionLength);
     }
     memcpy(segment+TcpHeaderLength+OptionLength,data,DataLength);
+    genCheckSum();
     SegmentSize=TcpHeaderLength+DataLength+OptionLength;
     ipHeader.SegmentSize=SegmentSize;
     ipHeader.pro_segmentsize=ipHeader.Protocol;
@@ -331,13 +332,11 @@ int PackTcpSegment::genCheckSum()
 
 int PackTcpSegment::writeSegment()
 {
-    std::fstream segmentFile("./tcp_segment.txt",std::ios::out|std::ios::app);
-    unsigned short *output=(unsigned short *)segment;
-    for(int i=0; i<SegmentSize/2; i++)
+    std::fstream segmentFile("./tcp_segment.txt",std::ios::out);
+    unsigned char *output=(unsigned char *)segment;
+    for(int i=0; i<SegmentSize; i++)
     {
-        segmentFile<<std::hex<<(*(output+i))<<"  ";
-        if((i+1)%8==0)
-            segmentFile<<std::endl;
+        segmentFile<<(*(output+i));
     }
     segmentFile.close();
     return 1;
@@ -409,9 +408,9 @@ void PackTcpSegment::parseSegment(unsigned char *d,int Len)
     DataLength=Len-TcpHeaderLength-OptionLength;
     memcpy(data,d,DataLength);
 
-    std::fstream dataFile("./app_data_tcp.txt",std::ios::out|std::ios::app);
-    unsigned char *output=(unsigned char *)segment;
-    for(int i=0; i<SegmentSize; i++)
+    std::fstream dataFile("./app_data_tcp.txt",std::ios::out);
+    unsigned char *output=(unsigned char *)data;
+    for(int i=0; i<DataLength; i++)
     {
         dataFile<<(*(output+i));
 
