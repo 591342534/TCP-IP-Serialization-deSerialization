@@ -18,9 +18,6 @@ PackIpPacket::PackIpPacket()
     SegmentLength=0;
     PacketLength=0;
 
-    tcp=new PackTcpSegment();
-    udp=new PackUdpSegment();
-
     segment=(unsigned char*)malloc(MaxSegmentLength);
     options=(char*)malloc(MaxOptionLength);
     packet=(unsigned char*)malloc(MaxPacketLength);
@@ -257,7 +254,7 @@ int PackIpPacket::genHeaderChecksum()
     }
     if(OptionLength==0)
     {
-        header.HeaderChecksum=(unsigned short)cs;
+        header.HeaderChecksum=(unsigned short)cs^0xFFFF;
         return 1;
     }
     p=(unsigned short*)options;
@@ -271,7 +268,7 @@ int PackIpPacket::genHeaderChecksum()
             cs+=temp;
         }
     }
-    header.HeaderChecksum=(unsigned short)cs;
+    header.HeaderChecksum+=(unsigned short)cs^0xFFFF;
     return 1;
 }
 
@@ -340,7 +337,8 @@ void PackIpPacket::parsePacket(unsigned char *d,int Len)
     memcpy(&header,d,HeaderLength);
     d+=HeaderLength;
     header_ntoh();
-    if(OptionLength>0){
+    if(OptionLength>0)
+    {
         memcpy(options,d,OptionLength);
         d+=OptionLength;
     }

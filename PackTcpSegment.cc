@@ -4,7 +4,8 @@ PackTcpSegment::PackTcpSegment()
 {
     ipHeader.SourceIpAddr=0;
     ipHeader.DestinationIpAddr=0;
-    ipHeader.SegmentSize=0;
+    ipHeader.SegmentLength=0;
+    ipHeader.Protocol=0x0006;
 
     header.SourcePort = 0;
     header.DestinationPort = 0;
@@ -25,11 +26,11 @@ PackTcpSegment::PackTcpSegment()
 
     OptionLength = 0;
     DataLength = 0;
-    SegmentSize = 0;
+    SegmentLength = 0;
 
     options=(unsigned char*)malloc(MaxOptionLength);
     data = (unsigned char*) malloc(MaxDataLength);
-    segment = (unsigned char*) malloc(MaxSegmentSize);
+    segment = (unsigned char*) malloc(MaxSegmentLength);
 }
 
 PackTcpSegment::~PackTcpSegment()
@@ -41,13 +42,13 @@ PackTcpSegment::~PackTcpSegment()
 
 int PackTcpSegment::setIpSourceAddr(const char *addr)
 {
-    ipHeader.SourceIpAddr=htonl(inet_addr(addr));
+    ipHeader.SourceIpAddr=(inet_addr(addr));
     return 1;
 }
 
 int PackTcpSegment::setIpDestinationAddr(const char *addr)
 {
-    ipHeader.DestinationIpAddr=htonl(inet_addr(addr));
+    ipHeader.DestinationIpAddr=(inet_addr(addr));
     return 1;
 }
 
@@ -284,19 +285,17 @@ int PackTcpSegment::genHeaderLength()
 int PackTcpSegment::genSegment()
 {
     header_hton();
-    memcpy(segment,&header,TcpHeaderLength);//copy header
+    memcpy(segment,&header,HeaderLength);//copy header
     if(OptionLength>0)
     {
-        memcpy(segment+TcpHeaderLength,options,OptionLength);
+        memcpy(segment+HeaderLength,options,OptionLength);
     }
-    memcpy(segment+TcpHeaderLength+OptionLength,data,DataLength);
+    memcpy(segment+HeaderLength+OptionLength,data,DataLength);
+
+    SegmentLength=HeaderLength+DataLength+OptionLength;
+    ipHeader.SegmentLength=htons(SegmentLength);
+
     genCheckSum();
-    SegmentSize=TcpHeaderLength+DataLength+OptionLength;
-    ipHeader.SegmentSize=SegmentSize;
-    ipHeader.pro_segmentsize=ipHeader.Protocol;
-    ipHeader.pro_segmentsize<<=16;
-    ipHeader.pro_segmentsize+=SegmentSize;
-    ipHeader.pro_segmentsize=htonl(ipHeader.pro_segmentsize);
     return 1;
 }
 
@@ -307,7 +306,7 @@ int PackTcpSegment::genCheckSum()
     //ip header校验和
     for(int i=0; i<6; i++)
     {
-        cs+=(*(p+i));
+        cs+=(*(p+i));//二进制反码相加
         while((cs>>16)>0)
         {
             unsigned short temp=cs>>16;
@@ -316,9 +315,9 @@ int PackTcpSegment::genCheckSum()
         }
     }
     p=(unsigned short*)segment;
-    for(int i=0; i<SegmentSize/2; i++)
+    for(int i=0; i<SegmentLength/2; i++)
     {
-        cs+=(*(p+i));
+        cs+=(*(p+i));//二进制反码相加
         while((cs>>16)>0)
         {
             unsigned short temp=cs>>16;
@@ -326,7 +325,8 @@ int PackTcpSegment::genCheckSum()
             cs+=temp;
         }
     }
-    header.CheckSum=(unsigned short)cs;
+    header.CheckSum=(unsigned short)cs^0xFFFF;
+    memcpy(segment+16,&header.CheckSum,2);
     return 1;
 }
 
@@ -334,7 +334,7 @@ int PackTcpSegment::writeSegment()
 {
     std::fstream segmentFile("./tcp_segment.txt",std::ios::out);
     unsigned char *output=(unsigned char *)segment;
-    for(int i=0; i<SegmentSize; i++)
+    for(int i=0; i<SegmentLength; i++)
     {
         segmentFile<<(*(output+i));
     }
@@ -349,11 +349,12 @@ unsigned char * PackTcpSegment::getSegment()
 
 int PackTcpSegment::getSegmentLength()
 {
-    return SegmentSize;
+    return SegmentLength;
 }
 
 void PackTcpSegment::header_hton()
 {
+    ipHeader.Protocol=htons(ipHeader.Protocol);
     header.SourcePort=htons(header.SourcePort);
     header.DestinationPort=htons(header.DestinationPort);
     header.AckNumber=htonl(header.AckNumber);
@@ -385,7 +386,7 @@ void PackTcpSegment::header_ntoh()
     unsigned short hl=header.HeaderLength_Reserver_Ctrl;
     hl>>=12;
     hl*=4;
-    OptionLength=hl-TcpHeaderLength;
+    OptionLength=hl-HeaderLength;
     if(OptionLength>0)
     {
         for(int i=0; i<(OptionLength/4); i++)
@@ -398,14 +399,15 @@ void PackTcpSegment::header_ntoh()
 
 void PackTcpSegment::parseSegment(unsigned char *d,int Len)
 {
-    memcpy(&header,d,TcpHeaderLength);
+    memcpy(&header,d,HeaderLength);
     header_ntoh();
-    d+=TcpHeaderLength;
-    if(OptionLength>0){
+    d+=HeaderLength;
+    if(OptionLength>0)
+    {
         memcpy(options,d,OptionLength);
         d+=OptionLength;
     }
-    DataLength=Len-TcpHeaderLength-OptionLength;
+    DataLength=Len-HeaderLength-OptionLength;
     memcpy(data,d,DataLength);
 
     std::fstream dataFile("./app_data_tcp.txt",std::ios::out);

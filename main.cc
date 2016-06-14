@@ -2,8 +2,8 @@
 #include "EthernetFrame.h"
 #include <stdio.h>
 
-char src[20]="223.252.199.6";
-char dst[20]="192.168.199.222";
+char src[20]="192.168.199.149";
+char dst[20]="234.123.12.1";
 unsigned char *raw_data;
 unsigned char *frame_data;
 int data_length;
@@ -28,7 +28,6 @@ int main()
     data_length=fin.tellg();
     fin.seekg(0,std::ios::beg);
     fin.read((char*)raw_data,data_length);
-    //data_length=0;
     fin.close();
 
     //生成源文件
@@ -48,9 +47,12 @@ int main()
     fin.close();
     eth->parseFrame(frame_data,data_length);
     ip->parsePacket(eth->getPacket(),eth->getPacketLength());
-    if(ip->getProtocolType()==6){
+    if(ip->getProtocolType()==6)
+    {
         tcp->parseSegment(ip->getSegment(),ip->getSegmentLength());
-    }else if(ip->getProtocolType()==17){
+    }
+    else if(ip->getProtocolType()==17)
+    {
         udp->parseSegment(ip->getSegment(),ip->getSegmentLength());
     }
     return 0;
@@ -58,8 +60,8 @@ int main()
 
 void genUdpSegment()
 {
-    udp->setIpSourceAddr("192.168.199.149");
-    udp->setIpDestinationAddr("234.123.12.1");
+    udp->setIpSourceAddr(src);
+    udp->setIpDestinationAddr(dst);
     udp->setSourcePort(20141);
     udp->setDestinationPort(20141);
     udp->setData(raw_data,data_length);
@@ -69,8 +71,8 @@ void genUdpSegment()
 
 void genIpPacketFromUdp()
 {
-    ip->setIpSourceAddr("192.168.199.149");
-    ip->setIpDestinationAddr("234.123.12.1");
+    ip->setIpSourceAddr(src);
+    ip->setIpDestinationAddr(dst);
     ip->setVer(4);
     ip->setIdetification(0x55a9);
     ip->setTTL(255);
@@ -85,20 +87,19 @@ void genTcpSegment()
 {
     tcp->setIpSourceAddr(src);
     tcp->setIpDestinationAddr(dst);
-    tcp->setSourcePort(52512);
+    tcp->setSourcePort(53166);
     tcp->setDestinationPort(80);
-    tcp->setSequnceNumber(0x59269446);
-    tcp->setAckNumber(0xC4E9A28D);
-    //tcp->setPSH(1);
+    tcp->setSequnceNumber(0x998ee703);
+    tcp->setAckNumber(0x73941717);
+    tcp->setFIN(1);
     tcp->setACK(1);
-    tcp->setWndSize(0);
-    //tcp->setTimeStamp(0xB5AE06C8,0x0035B919);
+    tcp->setWndSize(321);
+    tcp->setTimeStamp(213600,3838757550);
 
     tcp->setData(raw_data,data_length);
 
     tcp->genHeaderLength();
     tcp->genSegment();
-    tcp->genCheckSum();
     tcp->writeSegment();
 }
 
@@ -107,9 +108,9 @@ void genIpPacketFromTcp()
     ip->setIpSourceAddr(src);
     ip->setIpDestinationAddr(dst);
     ip->setVer(4);
-    ip->setIdetification(0xed2f);
+    ip->setIdetification(14182);
     ip->setDonnotFra(1);
-    ip->setTTL(53);
+    ip->setTTL(64);
     ip->setProtocol(6);
     ip->setSegment(tcp->getSegment(),tcp->getSegmentLength());
 

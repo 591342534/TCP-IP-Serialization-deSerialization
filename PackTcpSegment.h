@@ -22,18 +22,17 @@ struct PseudoIpHeader_TCP
 {
     unsigned int SourceIpAddr;
     unsigned int DestinationIpAddr;
-    unsigned int pro_segmentsize;
-    const static unsigned short Protocol=0x0006;
-    unsigned short SegmentSize;
+    unsigned short Protocol;
+    unsigned short SegmentLength;
 };
 
 class PackTcpSegment
 {
 private:
     const static int MaxDataLength=1460;
-    const static int MaxSegmentSize=1480;
+    const static int MaxSegmentLength=1480;
     const static int MaxOptionLength=40;
-    const static int TcpHeaderLength=20;
+    const static int HeaderLength=20;
     //IP header
     struct PseudoIpHeader_TCP ipHeader;
 
@@ -48,8 +47,12 @@ private:
     unsigned int SACK_permitted;//NOP*2+type+length
     unsigned int *SACK;//NOP*2+type+length   +block messages(n*4 bytes)
     int OptionLength;
+
+    //来自应用层的数据字段的长度 or 解析出的数据长度
     int DataLength;
-    int SegmentSize;
+
+    //封装后报文长度
+    int SegmentLength;
 
     //data
     unsigned char *data;//dynamic allocate memory
@@ -61,9 +64,11 @@ public:
     PackTcpSegment();
     ~PackTcpSegment();
 
+    //设置伪首部参数
     int setIpSourceAddr(const char *addr);
     int setIpDestinationAddr(const char *addr);
 
+    //设置标准头部参数
     int setSourcePort(int port);
     int setDestinationPort(int port);
     int setSequnceNumber(int seq);
@@ -80,24 +85,30 @@ public:
     int genCheckSum();
     int setUrgentPointer(int p);
 
+    //设置选项字段参数
     int setMSS(int mss);
     int setWSF(int wsf);
     int setTimeStamp(int TSval,int TSecr);
     int setSACK_permitted();
     int setSACK(unsigned int *block[2],int num_block);
 
+    //设置数据
     int setData(unsigned char *d,int len);
 
+    //封装报文
     int genSegment();
 
     int writeSegment();
 
+    //获取封装后的报文
     unsigned char *getSegment();
     int getSegmentLength();
 
+    //字节序转换
     void header_hton();
     void header_ntoh();
 
+    //解析报文 提取数据
     void parseSegment(unsigned char *d,int Len);
     unsigned char * getAppData();
     int getDataLength();

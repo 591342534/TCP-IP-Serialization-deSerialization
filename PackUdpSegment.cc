@@ -4,7 +4,8 @@ PackUdpSegment::PackUdpSegment()
 {
     ipHeader.SourceIpAddr=0;
     ipHeader.DestinationIpAddr=0;
-    ipHeader.SegmentSize=0;
+    ipHeader.SegmentLength=0;
+    ipHeader.Protocol=0x0011;
 
     header.SourcePort = 0;
     header.DestinationPort = 0;
@@ -13,21 +14,21 @@ PackUdpSegment::PackUdpSegment()
 
 
     DataLength = 0;
-    header.SegmentSize = 0;
+    header.SegmentLength = 0;
 
     data = (unsigned char*) malloc(MaxDataLength);
-    segment = (unsigned char*) malloc(MaxSegmentSize);
+    segment = (unsigned char*) malloc(MaxSegmentLength);
 }
 
 int PackUdpSegment::setIpSourceAddr(const char *addr)
 {
-    ipHeader.SourceIpAddr=htonl(inet_addr(addr));
+    ipHeader.SourceIpAddr=(inet_addr(addr));
     return 1;
 }
 
 int PackUdpSegment::setIpDestinationAddr(const char *addr)
 {
-    ipHeader.DestinationIpAddr=htonl(inet_addr(addr));
+    ipHeader.DestinationIpAddr=(inet_addr(addr));
     return 1;
 }
 
@@ -77,18 +78,15 @@ int PackUdpSegment::setData(unsigned char *d, int len)
 int PackUdpSegment::genSegment()
 {
 
-    header.SegmentSize=UdpHeaderLength+DataLength;
-
+    header.SegmentLength=UdpHeaderLength+DataLength;
+    SegmentLength=header.SegmentLength;
     header_hton();
-    genCheckSum();
+    ipHeader.SegmentLength=(header.SegmentLength);
+
     memcpy(segment,&header,UdpHeaderLength);//copy header
     memcpy(segment+UdpHeaderLength,data,DataLength);
 
-    ipHeader.SegmentSize=header.SegmentSize;
-    ipHeader.pro_segmentsize=ipHeader.Protocol;
-    ipHeader.pro_segmentsize<<=16;
-    ipHeader.pro_segmentsize+=header.SegmentSize;
-    ipHeader.pro_segmentsize=htonl(ipHeader.pro_segmentsize);
+    genCheckSum();
     return 1;
 }
 
@@ -108,7 +106,7 @@ int PackUdpSegment::genCheckSum()
         }
     }
     p=(unsigned short*)segment;
-    for(int i=0; i<header.SegmentSize/2; i++)
+    for(int i=0; i<SegmentLength/2; i++)
     {
         cs+=(*(p+i));
         while((cs>>16)>0)
@@ -118,7 +116,8 @@ int PackUdpSegment::genCheckSum()
             cs+=temp;
         }
     }
-    header.CheckSum=(unsigned short)cs;
+    header.CheckSum=(unsigned short)cs^0xFFFF;
+    memcpy(segment+6,&header.CheckSum,2);
     return 1;
 }
 
@@ -126,7 +125,7 @@ int PackUdpSegment::writeSegment()
 {
     std::fstream segmentFile("./udp_segment.txt",std::ios::out);
     unsigned short *output=(unsigned short *)segment;
-    for(int i=0; i<header.SegmentSize/2; i++)
+    for(int i=0; i<header.SegmentLength/2; i++)
     {
         segmentFile<<std::hex<<(*(output+i))<<"  ";
         if((i+1)%8==0)
@@ -143,21 +142,22 @@ unsigned char * PackUdpSegment::getSegment()
 
 int PackUdpSegment::getSegmentLength()
 {
-    return ntohs(header.SegmentSize);
+    return SegmentLength;
 }
 
 void PackUdpSegment::header_hton()
 {
+    ipHeader.Protocol=htons(ipHeader.Protocol);
     header.SourcePort=htons(header.SourcePort);
     header.DestinationPort=htons(header.DestinationPort);
-    header.SegmentSize=htons(header.SegmentSize);
+    header.SegmentLength=htons(header.SegmentLength);
 }
 
 void PackUdpSegment::header_ntoh()
 {
     header.SourcePort=ntohs(header.SourcePort);
     header.DestinationPort=ntohs(header.DestinationPort);
-    header.SegmentSize=ntohs(header.SegmentSize);
+    header.SegmentLength=ntohs(header.SegmentLength);
 }
 
 

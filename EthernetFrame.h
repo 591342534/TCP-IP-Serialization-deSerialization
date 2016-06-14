@@ -19,9 +19,12 @@ class EthernetFrame
 public:
     EthernetFrame();
     ~EthernetFrame();
+    //解析帧
     void parseFrame(unsigned char *d,int Len);
     unsigned char* getPacket();
     int getPacketLength();
+
+    //封装帧 设置帧头参数
     void setPacket(unsigned char *d,int len);
     void setMacSrc(char *src);
     void setMacDst(char *dst);

@@ -13,6 +13,8 @@ EthernetFrame::EthernetFrame()
 EthernetFrame::~EthernetFrame()
 {
     //dtor
+    free(packet);
+    free(frame);
 }
 
 void EthernetFrame::parseFrame(unsigned char *d,int Len)
